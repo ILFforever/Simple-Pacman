@@ -6,8 +6,8 @@ public class App {
 		int rowC = 21;
 		int colC = 19;
 		int tileSize = 32;
-		int boardWidth = colC * tileSize;
-		int boardHeight = rowC * tileSize;
+		int boardWidth = colC * tileSize+13;
+		int boardHeight = rowC * tileSize + 100;
 		
 		//Draw app window
 		JFrame frame = new JFrame("PacMan");
@@ -19,7 +19,7 @@ public class App {
 		
 		Pacman pacmanGame = new Pacman();
 		frame.add(pacmanGame); //Add JFrame from Pacman
-		frame.pack(); //Stretched to fit window
+		//frame.pack(); //Stretched to fit window
 		pacmanGame.requestFocus();
 		frame.setVisible(true);
 
