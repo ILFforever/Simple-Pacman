@@ -20,6 +20,7 @@ public class App {
 		Pacman pacmanGame = new Pacman();
 		frame.add(pacmanGame); //Add JFrame from Pacman
 		frame.pack(); //Stretched to fit window
+		pacmanGame.requestFocus();
 		frame.setVisible(true);
 
 	}

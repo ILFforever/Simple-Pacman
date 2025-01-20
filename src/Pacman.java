@@ -1,10 +1,15 @@
 import java.awt.*;
 import java.awt.Event;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.random.*;
 import javax.swing.*;
 
-public class Pacman extends JPanel {
+public class Pacman extends JPanel implements ActionListener, KeyListener {
 	/**
 	 * 
 	 */
@@ -32,7 +37,11 @@ public class Pacman extends JPanel {
 	HashSet<Block> foods;
 	HashSet<Block> ghosts;
 	Block Pacman;
-	// X = wall, O = skip, P = pac man, ' ' = food
+	Random random = new Random();
+	char[] direction = {'U','D','L','R'};
+	
+	Timer gameLoop;
+	// X = wall, O = skip, P = Pacman, ' ' = food
 	// Ghosts: b = blue, o = orange, p = pink, r = red
 	private String[] tileMap = { "XXXXXXXXXXXXXXXXXXX", "X        X        X", "X XX XXX X XXX XX X",
 			"X                 X", "X XX X XXXXX X XX X", "X    X       X    X", "XXXX XXXX XXXX XXXX",
@@ -57,8 +66,16 @@ public class Pacman extends JPanel {
 		PacmanDownImage = new ImageIcon(getClass().getResource("/pacmanDown.png")).getImage();
 		PacmanLeftImage = new ImageIcon(getClass().getResource("/pacmanLeft.png")).getImage();
 		PacmanRightImage = new ImageIcon(getClass().getResource("/pacmanRight.png")).getImage();
-
+		
+		addKeyListener(this);
+		setFocusable(true); //what does this do
 		loadmap();
+		for (Block ghost : ghosts) {
+			char newDirection = direction[random.nextInt(4)];
+			ghost.updateDirection(newDirection);
+		}
+		gameLoop = new Timer(50,this); //somehow calls actionPerformed every 50ms
+		gameLoop.start(); //start timer
 	}
 
 	class Block {
@@ -70,6 +87,11 @@ public class Pacman extends JPanel {
 
 		int startX;
 		int startY;
+		
+		int direction = 'U';
+		int velocityX = 0;
+		int velocityY = 0;
+		
 
 		Block(Image image, int x, int y, int width, int height) {
 			this.image = image;
@@ -80,7 +102,42 @@ public class Pacman extends JPanel {
 			this.startX = x;
 			this.startY = y;
 		}
-
+		//functions in class block
+		void updateDirection(char direction) {
+			char prevDirection = (char) this.direction;
+			this.direction = direction;
+			updateVelocity();
+			this.x += this.velocityX;
+			this.y += this.velocityY;
+			//check for collision when turning
+			for (Block wall : walls) {
+				if (collision(wall,this)) {
+					this.x -= this.velocityX;
+					this.y -= this.velocityY;
+					this.direction = prevDirection;
+					updateVelocity();
+				}
+			}
+		}
+		
+		void updateVelocity() {
+			if (this.direction == 'U') {
+				this.velocityX = 0;
+				this.velocityY = -tileSize/4;
+			}
+			else if (this.direction == 'D') {
+				this.velocityX = 0;
+				this.velocityY = +tileSize/4;
+			}
+			else if (this.direction == 'L') {
+				this.velocityX = -tileSize/4;
+				this.velocityY = 0;
+			}
+			else if (this.direction == 'R') {
+				this.velocityX = +tileSize/4;
+				this.velocityY = 0;
+			}
+		}
 	}
 
 	public void loadmap() {
@@ -118,9 +175,7 @@ public class Pacman extends JPanel {
 							y + (tileSize / 2) - ((tileSize / 8) - 2), tileSize / 8, tileSize / 8);
 					foods.add(food);
 				}
-
 			}
-
 		}
 	}
 	
@@ -145,5 +200,97 @@ public class Pacman extends JPanel {
 			g.fillRect(food.x, food.y , food.width, food.height);			
 		}
 	
+	}
+	
+	public void move() {
+		//move Pacman
+		Pacman.x += Pacman.velocityX;
+		Pacman.y += Pacman.velocityY;
+		for (Block wall : walls) { //check all walls
+			if (collision(Pacman,wall)) {
+				//move back a frame so he isn't stuck forever
+				Pacman.x -= Pacman.velocityX;
+				Pacman.y -= Pacman.velocityY;
+				break;
+			}
+		}
+		if (Pacman.x + Pacman.width < 0) //entire pacman disappear off screen
+			Pacman.x = boardWidth;
+		if (Pacman.x > boardWidth) //entire pacman disappear off screen
+			Pacman.x = 0 - Pacman.width;
+		
+		for (Block ghost : ghosts) {
+			ghost.x += ghost.velocityX;
+			ghost.y += ghost.velocityY;
+			for (Block wall : walls) {
+				if (collision(wall, ghost)) {
+					ghost.x -= ghost.velocityX;
+					ghost.y -= ghost.velocityY;
+					char newdirection = direction[random.nextInt(4)];
+					ghost.updateDirection(newdirection); 
+				}
+				else {
+					int curDirection = ghost.direction;
+					
+				}
+			}
+			if (ghost.x + ghost.width < 0)  //entire pacman disappear off screen
+				ghost.x = boardWidth;
+				if (ghost.x > boardWidth)  //entire pacman disappear off screen
+					ghost.x = 0 - ghost.width;
+		}
+	}
+	
+	public boolean collision(Block a, Block b ) {
+		return a.x < b.x + b.width &&
+				a.x + a.width > b.x &&
+				a.y < b.y + b.height &&
+				a.y + a.height > b.y;
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		move(); // move objects
+		repaint(); //draw game
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		//System.out.println("press : "+e.getKeyCode());
+		if (e.getKeyCode() == KeyEvent.VK_UP) {
+			Pacman.updateDirection('U');
+		}
+		else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+			Pacman.updateDirection('D');
+		}
+		else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+			Pacman.updateDirection('L');
+		}
+		else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+			Pacman.updateDirection('R');
+		}
+		
+		if (Pacman.direction == 'U') {
+			Pacman.image = PacmanUpImage;
+		}
+		else if (Pacman.direction == 'D') {
+			Pacman.image = PacmanDownImage;
+		}
+		else if (Pacman.direction == 'L') {
+			Pacman.image = PacmanLeftImage;
+		}
+		else if (Pacman.direction == 'R') {
+			Pacman.image = PacmanRightImage;
+		}
 	}
 }
